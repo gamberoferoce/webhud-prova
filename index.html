@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Universal HUD Button</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #hud-container {
+      position: relative;
+      width: 600px;
+      height: 600px;
+      display: grid;
+      place-items: center;
+      background-color: #000000;
+    }
+
+    .btn-toggle {
+      width: 60px;
+      height: 60px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #49454f;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .btn-shape {
+      width: 40px;
+      height: 40px;
+      box-sizing: border-box;
+      border: 1px solid #cac4d0;
+      border-radius: 100px;
+      background: transparent;
+      display: grid;
+      place-items: center;
+    }
+
+    .btn-toggle.state-on {
+      color: #f5eff7;
+    }
+
+    .btn-toggle.state-on .btn-shape {
+      border-color: #322f35;
+      border-radius: 12px;
+      background-color: #322f35;
+    }
+
+    .btn-icon {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .btn-icon-selected {
+      display: none;
+    }
+
+    .btn-toggle.state-on .btn-icon-normale {
+      display: none;
+    }
+
+    .btn-toggle.state-on .btn-icon-selected {
+      display: block;
+    }
+
+    #debug-text {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(50% + 42px);
+      margin: 0;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    #quest-xr-btn {
+      margin-top: 30px;
+      padding: 12px 24px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: none;
+    }
+
+    @media (max-width: 600px) and (max-height: 600px) and (aspect-ratio: 1/1) {
+      body {
+        background-color: #000000;
+      }
+      #quest-xr-btn {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud-container">
+    <button id="toggle-button" class="btn-toggle" type="button" aria-label="OFF">
+      <span class="btn-shape">
+        <svg class="btn-icon btn-icon-normale" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill="currentColor" d="M6 16L10 12.95L14 16L12.5 11.05L16.5 8.2H11.6L10 3L8.4 8.2H3.5L7.5 11.05L6 16ZM10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.88333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20ZM10 18C12.2333 18 14.125 17.225 15.675 15.675C17.225 14.125 18 12.2333 18 10C18 7.76667 17.225 5.875 15.675 4.325C14.125 2.775 12.2333 2 10 2C7.76667 2 5.875 2.775 4.325 4.325C2.775 5.875 2 7.76667 2 10C2 12.2333 2.775 14.125 4.325 15.675C5.875 17.225 7.76667 18 10 18Z"/>
+        </svg>
+        <svg class="btn-icon btn-icon-selected" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill="currentColor" d="M6 16L10 12.95L14 16L12.5 11.05L16.5 8.2H11.6L10 3L8.4 8.2H3.5L7.5 11.05L6 16Z"/>
+        </svg>
+      </span>
+    </button>
+    <p id="debug-text"></p>
+  </div>
+
+  <button id="quest-xr-btn">ENTRA IN MODALITÀ QUEST HUD (AR)</button>
+
+  <script>
+    const toggleButton = document.getElementById('toggle-button');
+    const debugText = document.getElementById('debug-text');
+    const xrButton = document.getElementById('quest-xr-btn');
+
+    const LAYER_SIZE = 512;
+    const PINCH_BUTTON = 0;
+    const SINISTRA_BUTTON = 5;
+    const DESTRA_BUTTON = 6;
+    const COLORI = [
+      { nome: 'ROSSO', hue: 0, css: '#ff2a2a' },
+      { nome: 'ARANCIONE', hue: 30, css: '#ff8a00' },
+      { nome: 'GIALLO', hue: 55, css: '#ffe14a' },
+      { nome: 'VERDE', hue: 120, css: '#3dff6a' },
+      { nome: 'AZZURRO', hue: 190, css: '#3de4ff' },
+      { nome: 'BLU', hue: 240, css: '#4d6dff' },
+      { nome: 'VIOLA', hue: 280, css: '#b44dff' },
+      { nome: 'ROSA', hue: 330, css: '#ff4da6' }
+    ];
+
+    let audioCtx = null;
+    let is_on = false;
+    let coloreIndice = null;
+    let pinchTenuto = false;
+    let sinistraTenuta = false;
+    let destraTenuta = false;
+    let invioInCorso = false;
+    let statoRichiesto = null;
+    let invioColore = false;
+    let coloreRichiesto = null;
+    let quest_xr_session = null;
+    let layerError = null;
+
+    let gl = null;
+    let xrGlBinding = null;
+    let quadLayer = null;
+    let framebuffer = null;
+    let buttonTexture = null;
+    let quadProgram = null;
+    let quadVao = null;
+    let buttonCanvas = null;
+    let buttonCtx = null;
+    let textureDirty = false;
+
+    const PONTE_PUBBLICO = {
+      bridge: 'https://deployment-boost-option-assumption.trycloudflare.com',
+      key: 'vOSKiOKp8mDz_WNQR7o9by4R'
+    };
+
+    const ponte = leggiPonte();
+
+    function leggiPonte() {
+      const params = new URLSearchParams(location.search);
+      if (params.has('bridge')) localStorage.setItem('nanoleafBridge', params.get('bridge').trim());
+      if (params.has('k')) localStorage.setItem('nanoleafKey', params.get('k').trim());
+      if (params.has('bridge') || params.has('k')) {
+        params.delete('bridge');
+        params.delete('k');
+        const resto = params.toString();
+        history.replaceState(null, '', location.pathname + (resto ? '?' + resto : '') + location.hash);
+      }
+      let bridge = localStorage.getItem('nanoleafBridge') || '';
+      if (!params.has('bridge') && bridge.includes('trycloudflare.com') && bridge.replace(/\/+$/, '') !== PONTE_PUBBLICO.bridge) {
+        localStorage.removeItem('nanoleafBridge');
+        bridge = '';
+      }
+      return {
+        bridge: (bridge || PONTE_PUBBLICO.bridge).replace(/\/+$/, ''),
+        key: localStorage.getItem('nanoleafKey') || PONTE_PUBBLICO.key
+      };
+    }
+
+    function tintaScelta() {
+      if (!is_on || coloreIndice === null) return null;
+      return COLORI[coloreIndice];
+    }
+
+    function indiceVicino(hue) {
+      let migliore = 0;
+      let distanza = 360;
+      COLORI.forEach((colore, indice) => {
+        let delta = Math.abs(colore.hue - hue) % 360;
+        if (delta > 180) delta = 360 - delta;
+        if (delta < distanza) {
+          distanza = delta;
+          migliore = indice;
+        }
+      });
+      return migliore;
+    }
+
+    const ICONA_NORMALE = 'M6 16L10 12.95L14 16L12.5 11.05L16.5 8.2H11.6L10 3L8.4 8.2H3.5L7.5 11.05L6 16ZM10 20C8.61667 20 7.31667 19.7375 6.1 19.2125C4.88333 18.6875 3.825 17.975 2.925 17.075C2.025 16.175 1.3125 15.1167 0.7875 13.9C0.2625 12.6833 0 11.3833 0 10C0 8.61667 0.2625 7.31667 0.7875 6.1C1.3125 4.88333 2.025 3.825 2.925 2.925C3.825 2.025 4.88333 1.3125 6.1 0.7875C7.31667 0.2625 8.61667 0 10 0C11.3833 0 12.6833 0.2625 13.9 0.7875C15.1167 1.3125 16.175 2.025 17.075 2.925C17.975 3.825 18.6875 4.88333 19.2125 6.1C19.7375 7.31667 20 8.61667 20 10C20 11.3833 19.7375 12.6833 19.2125 13.9C18.6875 15.1167 17.975 16.175 17.075 17.075C16.175 17.975 15.1167 18.6875 13.9 19.2125C12.6833 19.7375 11.3833 20 10 20ZM10 18C12.2333 18 14.125 17.225 15.675 15.675C17.225 14.125 18 12.2333 18 10C18 7.76667 17.225 5.875 15.675 4.325C14.125 2.775 12.2333 2 10 2C7.76667 2 5.875 2.775 4.325 4.325C2.775 5.875 2 7.76667 2 10C2 12.2333 2.775 14.125 4.325 15.675C5.875 17.225 7.76667 18 10 18Z';
+    const ICONA_SELECTED = 'M6 16L10 12.95L14 16L12.5 11.05L16.5 8.2H11.6L10 3L8.4 8.2H3.5L7.5 11.05L6 16Z';
+
+    function applica(acceso) {
+      is_on = !!acceso;
+      delete debugText.dataset.errore;
+      const tinta = tintaScelta();
+      toggleButton.classList.toggle('state-on', is_on);
+      toggleButton.setAttribute('aria-label', tinta ? tinta.nome : (is_on ? 'ON' : 'OFF'));
+      if (!debugText.dataset.errore) debugText.textContent = tinta ? tinta.nome : '';
+      if (quadLayer) {
+        drawButtonCanvas();
+        textureDirty = true;
+      }
+    }
+
+    function luciNonRaggiunte() {
+      debugText.dataset.errore = '1';
+      debugText.textContent = 'Luci non raggiunte';
+    }
+
+    async function leggiStatoLuci() {
+      if (!ponte.bridge) return;
+      try {
+        const url = ponte.bridge + '/state?k=' + encodeURIComponent(ponte.key);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('stato');
+        const data = await res.json();
+        if (data.colorMode === 'hs' && data.sat >= 50) coloreIndice = indiceVicino(data.hue);
+        applica(data.on);
+      } catch (err) {
+        luciNonRaggiunte();
+      }
+    }
+
+    function suona(acceso) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const fine = acceso ? 0.14 : 0.18;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(acceso ? 523 : 392, now);
+      osc.frequency.exponentialRampToValueAtTime(acceso ? 784 : 196, now + fine);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + fine);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + fine + 0.02);
+    }
+
+    async function cambiaStato() {
+      const voluto = !is_on;
+      applica(voluto);
+      suona(voluto);
+      if (!ponte.bridge) return;
+      statoRichiesto = voluto;
+      if (invioInCorso) return;
+      invioInCorso = true;
+      try {
+        while (statoRichiesto !== null) {
+          const richiesto = statoRichiesto;
+          statoRichiesto = null;
+          try {
+            const res = await fetch(ponte.bridge + '/toggle', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ on: richiesto, k: ponte.key })
+            });
+            if (!res.ok) throw new Error('toggle');
+            const data = await res.json();
+            if (statoRichiesto === null && data.on !== is_on) applica(data.on);
+          } catch (err) {
+            if (statoRichiesto === null) {
+              applica(!richiesto);
+              suona(!richiesto);
+              luciNonRaggiunte();
+            }
+          }
+        }
+      } finally {
+        invioInCorso = false;
+      }
+    }
+
+    async function inviaColore(colore) {
+      if (!ponte.bridge) return;
+      coloreRichiesto = colore;
+      if (invioColore) return;
+      invioColore = true;
+      try {
+        while (coloreRichiesto) {
+          const richiesto = coloreRichiesto;
+          coloreRichiesto = null;
+          try {
+            const res = await fetch(ponte.bridge + '/color', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ hue: richiesto.hue, sat: 100, k: ponte.key })
+            });
+            if (!res.ok && !coloreRichiesto) luciNonRaggiunte();
+          } catch (err) {
+            if (!coloreRichiesto) luciNonRaggiunte();
+          }
+        }
+      } finally {
+        invioColore = false;
+      }
+    }
+
+    function cambiaColore(passo) {
+      if (!is_on) return;
+      const totale = COLORI.length;
+      coloreIndice = coloreIndice === null
+        ? (passo > 0 ? 0 : totale - 1)
+        : (coloreIndice + passo + totale) % totale;
+      applica(true);
+      inviaColore(COLORI[coloreIndice]);
+    }
+
+    toggleButton.addEventListener('click', cambiaStato);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (e.target === xrButton) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        cambiaStato();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        cambiaColore(1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        cambiaColore(-1);
+      }
+    });
+
+    function drawButtonCanvas() {
+      const ctx = buttonCtx;
+      const scala = LAYER_SIZE / 600;
+      const centro = LAYER_SIZE / 2;
+      const forma = 40 * scala;
+      const icona = 20 * scala;
+      ctx.clearRect(0, 0, LAYER_SIZE, LAYER_SIZE);
+      ctx.save();
+      ctx.translate(centro, centro);
+      if (is_on) {
+        const raggio = 12 * scala;
+        ctx.beginPath();
+        ctx.roundRect(-forma / 2, -forma / 2, forma, forma, raggio);
+        ctx.fillStyle = '#322f35';
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, (forma - scala) / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = '#cac4d0';
+        ctx.lineWidth = scala;
+        ctx.stroke();
+      }
+      ctx.translate(-icona / 2, -icona / 2);
+      ctx.scale(icona / 20, icona / 20);
+      ctx.fillStyle = is_on ? '#f5eff7' : '#49454f';
+      ctx.fill(new Path2D(is_on ? ICONA_SELECTED : ICONA_NORMALE));
+      ctx.restore();
+    }
+
+    function compileShader(type, source) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(shader) || 'Shader non compilato');
+      }
+      return shader;
+    }
+
+    function setupQuadLayer(session) {
+      buttonCanvas = document.createElement('canvas');
+      buttonCanvas.width = LAYER_SIZE;
+      buttonCanvas.height = LAYER_SIZE;
+      buttonCtx = buttonCanvas.getContext('2d');
+
+      const glCanvas = document.createElement('canvas');
+      gl = glCanvas.getContext('webgl2', { xrCompatible: true, alpha: true });
+      if (!gl) {
+        throw new Error('WebGL2 non disponibile');
+      }
+
+      const vertex = compileShader(gl.VERTEX_SHADER, `#version 300 es
+        layout(location = 0) in vec2 aPos;
+        out vec2 vUv;
+        void main() {
+          vUv = aPos * 0.5 + 0.5;
+          gl_Position = vec4(aPos, 0.0, 1.0);
+        }`);
+      const fragment = compileShader(gl.FRAGMENT_SHADER, `#version 300 es
+        precision mediump float;
+        uniform sampler2D uTex;
+        in vec2 vUv;
+        out vec4 outColor;
+        void main() {
+          outColor = texture(uTex, vUv);
+        }`);
+      quadProgram = gl.createProgram();
+      gl.attachShader(quadProgram, vertex);
+      gl.attachShader(quadProgram, fragment);
+      gl.linkProgram(quadProgram);
+      if (!gl.getProgramParameter(quadProgram, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(quadProgram) || 'Programma WebGL non linkato');
+      }
+
+      quadVao = gl.createVertexArray();
+      gl.bindVertexArray(quadVao);
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,
+        3, -1,
+        -1, 3
+      ]), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+      buttonTexture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, buttonTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      framebuffer = gl.createFramebuffer();
+
+      return gl.makeXRCompatible().then(() => {
+        xrGlBinding = new XRWebGLBinding(session, gl);
+        return session.requestReferenceSpace('viewer');
+      }).then((viewerSpace) => {
+        quadLayer = xrGlBinding.createQuadLayer({
+          space: viewerSpace,
+          viewPixelWidth: LAYER_SIZE,
+          viewPixelHeight: LAYER_SIZE,
+          width: 0.1,
+          height: 0.1,
+          transform: new XRRigidTransform({ x: 0, y: 0, z: -1 }),
+          colorFormat: gl.RGBA,
+          clearOnAccess: false
+        });
+        session.updateRenderState({ layers: [quadLayer] });
+        drawButtonCanvas();
+        textureDirty = true;
+      });
+    }
+
+    function paintQuad(frame) {
+      const subImage = xrGlBinding.getSubImage(quadLayer, frame);
+      gl.bindTexture(gl.TEXTURE_2D, buttonTexture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, buttonCanvas);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        subImage.colorTexture,
+        0
+      );
+      const viewport = subImage.viewport;
+      gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.SCISSOR_TEST);
+      gl.useProgram(quadProgram);
+      gl.bindVertexArray(quadVao);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, buttonTexture);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      textureDirty = false;
+    }
+
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        if (supported) {
+          xrButton.style.display = 'block';
+        }
+      });
+    }
+
+    xrButton.addEventListener('click', () => {
+      if (quest_xr_session || !navigator.xr) return;
+      navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['layers'],
+        optionalFeatures: ['hand-tracking']
+      }).then(onXRSessionStarted).catch((err) => {
+        debugText.textContent = 'Sessione Quest non avviata: ' + (err && err.message ? err.message : err);
+      });
+    });
+
+    function onXRSessionStarted(session) {
+      quest_xr_session = session;
+      layerError = null;
+      session.addEventListener('end', onXRSessionEnded);
+      setupQuadLayer(session).then(() => {
+        xrButton.style.display = 'none';
+        debugText.textContent = 'HUD sul quad layer. Pinch accende, sinistra e destra cambiano colore.';
+        session.requestAnimationFrame(onXRFrame);
+      }).catch((err) => {
+        layerError = 'Layer Quest non avviato: ' + (err && err.message ? err.message : err);
+        debugText.textContent = layerError;
+        session.end().catch(() => {});
+      });
+    }
+
+    function onXRSessionEnded() {
+      quest_xr_session = null;
+      quadLayer = null;
+      textureDirty = false;
+      pinchTenuto = false;
+      sinistraTenuta = false;
+      destraTenuta = false;
+      xrButton.style.display = 'block';
+      debugText.textContent = layerError || 'Sessione Quest chiusa. Puoi rientrare.';
+      layerError = null;
+    }
+
+    function onXRFrame(time, frame) {
+      const session = frame.session;
+      if (session !== quest_xr_session) return;
+      session.requestAnimationFrame(onXRFrame);
+
+      let pinch = false;
+      let sinistra = false;
+      let destra = false;
+      for (const inputSource of session.inputSources) {
+        const buttons = inputSource.hand && inputSource.gamepad && inputSource.gamepad.buttons;
+        if (!buttons) continue;
+        if (buttons[PINCH_BUTTON] && buttons[PINCH_BUTTON].pressed) pinch = true;
+        if (buttons[SINISTRA_BUTTON] && buttons[SINISTRA_BUTTON].pressed) sinistra = true;
+        if (buttons[DESTRA_BUTTON] && buttons[DESTRA_BUTTON].pressed) destra = true;
+      }
+      if (pinch && !pinchTenuto) cambiaStato();
+      if (destra && !destraTenuta) cambiaColore(1);
+      if (sinistra && !sinistraTenuta) cambiaColore(-1);
+      pinchTenuto = pinch;
+      destraTenuta = destra;
+      sinistraTenuta = sinistra;
+
+      if (quadLayer && (textureDirty || quadLayer.needsRedraw)) {
+        paintQuad(frame);
+      }
+    }
+
+    leggiStatoLuci();
+  </script>
+</body>
+</html>
