@@ -27,8 +27,8 @@
     }
 
     .btn-toggle {
-      width: 60px;
-      height: 60px;
+      width: 136px;
+      height: 136px;
       padding: 0;
       border: 0;
       border-radius: 0;
@@ -41,10 +41,10 @@
     }
 
     .btn-shape {
-      width: 40px;
-      height: 40px;
+      width: 136px;
+      height: 136px;
       box-sizing: border-box;
-      border: 1px solid #cac4d0;
+      border: 2px solid #cac4d0;
       border-radius: 100px;
       background: transparent;
       display: grid;
@@ -57,13 +57,13 @@
 
     .btn-toggle.state-on .btn-shape {
       border-color: #322f35;
-      border-radius: 12px;
+      border-radius: 28px;
       background-color: #322f35;
     }
 
     .btn-icon {
-      width: 20px;
-      height: 20px;
+      width: 33.3px;
+      height: 33.3px;
       display: block;
     }
 
@@ -83,7 +83,7 @@
       position: absolute;
       left: 0;
       right: 0;
-      top: calc(50% + 42px);
+      top: calc(50% + 80px);
       margin: 0;
       text-align: center;
       font-size: 14px;
@@ -367,22 +367,22 @@
       const ctx = buttonCtx;
       const scala = LAYER_SIZE / 600;
       const centro = LAYER_SIZE / 2;
-      const forma = 40 * scala;
-      const icona = 20 * scala;
+      const forma = 136 * scala;
+      const icona = 33.3 * scala;
       ctx.clearRect(0, 0, LAYER_SIZE, LAYER_SIZE);
       ctx.save();
       ctx.translate(centro, centro);
       if (is_on) {
-        const raggio = 12 * scala;
+        const raggio = 28 * scala;
         ctx.beginPath();
         ctx.roundRect(-forma / 2, -forma / 2, forma, forma, raggio);
         ctx.fillStyle = '#322f35';
         ctx.fill();
       } else {
         ctx.beginPath();
-        ctx.arc(0, 0, (forma - scala) / 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, (forma - 2 * scala) / 2, 0, Math.PI * 2);
         ctx.strokeStyle = '#cac4d0';
-        ctx.lineWidth = scala;
+        ctx.lineWidth = 2 * scala;
         ctx.stroke();
       }
       ctx.translate(-icona / 2, -icona / 2);
