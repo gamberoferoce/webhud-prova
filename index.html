@@ -390,6 +390,30 @@
       ctx.fillStyle = is_on ? '#f5eff7' : '#49454f';
       ctx.fill(new Path2D(is_on ? ICONA_SELECTED : ICONA_NORMALE));
       ctx.restore();
+      emulaAdditivo(ctx);
+    }
+
+    function emulaAdditivo(ctx) {
+      const immagine = ctx.getImageData(0, 0, LAYER_SIZE, LAYER_SIZE);
+      const px = immagine.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const copertura = px[i + 3] / 255;
+        if (copertura === 0) continue;
+        const rosso = px[i] * copertura;
+        const verde = px[i + 1] * copertura;
+        const blu = px[i + 2] * copertura;
+        const massimo = Math.max(rosso, verde, blu);
+        if (massimo === 0) {
+          px[i + 3] = 0;
+          continue;
+        }
+        const scala = 255 / massimo;
+        px[i] = Math.round(rosso * scala);
+        px[i + 1] = Math.round(verde * scala);
+        px[i + 2] = Math.round(blu * scala);
+        px[i + 3] = Math.round(massimo);
+      }
+      ctx.putImageData(immagine, 0, 0);
     }
 
     function compileShader(type, source) {
